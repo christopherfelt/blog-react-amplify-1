@@ -1,4 +1,6 @@
 import React, { Component } from "react";
+import { API, graphqlOperation } from "aws-amplify";
+import { createPost } from "../graphql/mutations";
 
 class CreatePost extends Component {
   state = {
@@ -12,15 +14,20 @@ class CreatePost extends Component {
     // Todo: TBA
   };
 
+  handleChangePost = (event) =>
+    this.setState({ [event.target.name]: event.target.value });
+
   handleAddPost = async (event) => {
     event.preventDefault();
     const input = {
-      postOwnerId: this.state.postOwnerId,
-      postOwnerUsername: this.state.postOwnerUsername,
+      postOwnerId: "pal23453624", //this.state.postOwnerId,
+      postOwnerUsername: "chris", //this.state.postOwnerUsername,
       postTitle: this.state.postTitle,
       postBody: this.state.postBody,
-      createAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
+    await API.graphql(graphqlOperation(createPost, { input }));
+    this.setState({ postTitle: "", postBody: "" });
   };
 
   render() {
@@ -31,6 +38,8 @@ class CreatePost extends Component {
           style={{ font: "19px" }}
           placeholder="Title"
           name="postTitle"
+          value={this.state.postTitle}
+          onChange={this.handleChangePost}
         />
         <textarea
           type="text"
@@ -40,6 +49,8 @@ class CreatePost extends Component {
           rows="3"
           placeholder="New blog post"
           required
+          value={this.state.postBody}
+          onChange={this.handleChangePost}
         ></textarea>
         <input type="submit" className="btn" style={{ fontSize: "19px" }} />
       </form>

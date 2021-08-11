@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { API, graphqlOperation } from "aws-amplify";
+import { onCreatePost } from "../graphql/subscriptions";
 
 import DeletePost from "./DeletePost";
 import { listPosts } from "../graphql/queries";
@@ -12,7 +13,25 @@ class DisplayPosts extends Component {
 
   componentDidMount = async () => {
     this.getPosts();
+
+    this.createPostListener = API.graphql(
+      graphqlOperation(onCreatePost)
+    ).subscribe({
+      next: (postData) => {
+        const newPost = postData.value.data.onCreatePost;
+        const prevPosts = this.state.posts.filter(
+          (post) => post.id !== newPost.id
+        );
+        const updatePosts = [newPost, ...prevPosts];
+
+        this.setState({ posts: updatePosts });
+      },
+    });
   };
+
+  componentWillUnmount() {
+    this.createPostListener.unsubscribe();
+  }
 
   getPosts = async () => {
     const result = await API.graphql(graphqlOperation(listPosts));
