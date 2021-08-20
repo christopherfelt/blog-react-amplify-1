@@ -63,7 +63,7 @@ class DisplayPosts extends Component {
             <br />
             <span>
               <DeletePost data={post} />
-              <EditPost />
+              <EditPost {...post}/>
             </span>
           </span>
           <time style={{ fontStyle: "italic", color: "#0ca5e297" }}>
