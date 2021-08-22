@@ -1,10 +1,16 @@
 import React, { Component } from "react";
 import { API, graphqlOperation } from "aws-amplify";
-import { onCreatePost, onDeletePost, onUpdatePost } from "../graphql/subscriptions";
+import {
+  onCreatePost,
+  onDeletePost,
+  onUpdatePost,
+  onCreateComment
+} from "../graphql/subscriptions";
 
 import DeletePost from "./DeletePost";
 import { listPosts } from "../graphql/queries";
 import EditPost from "./EditPost";
+import CreateCommentPost from "./CreateCommentPost";
 
 class DisplayPosts extends Component {
   state = {
@@ -13,6 +19,8 @@ class DisplayPosts extends Component {
 
   componentDidMount = async () => {
     this.getPosts();
+
+    // use subscribe sparingly
 
     this.createPostListener = API.graphql(
       graphqlOperation(onCreatePost)
@@ -28,25 +36,47 @@ class DisplayPosts extends Component {
       },
     });
 
-    this.deletePostListener = API.graphql(graphqlOperation(onDeletePost)).subscribe({
-      next: postData => {
+    this.deletePostListener = API.graphql(
+      graphqlOperation(onDeletePost)
+    ).subscribe({
+      next: (postData) => {
         const deletedPost = postData.value.data.onDeletePost;
-        const updatedPosts = this.state.posts.filter(post => post.id !== deletedPost.id)
-        this.setState({posts: updatedPosts})
+        const updatedPosts = this.state.posts.filter(
+          (post) => post.id !== deletedPost.id
+        );
+        this.setState({ posts: updatedPosts });
+      },
+    });
+
+    this.updatePostListener = API.graphql(
+      graphqlOperation(onUpdatePost)
+    ).subscribe({
+      next: (postData) => {
+        const { posts } = this.state;
+        const updatePost = postData.value.data.onUpdatePost;
+        const index = posts.findIndex((post) => post.id === updatePost.id);
+        const updatePosts = [
+          ...posts.slice(0, index),
+          updatePost,
+          ...posts.slice(index + 1),
+        ];
+        this.setState({ posts: updatePosts });
+      },
+    });
+
+    this.createPostCommentListener = API.graphql(graphqlOperation(onCreateComment)).subscribe({
+      next: commentData => {
+        const createdComment = commentData.value.data.onCreateComment;
+        let posts = [ ...this.state.posts];
+
+        for(let post of posts){
+          if(createdComment.post.id === post.id){
+            post.comments.item.push(createdComment)
+          }
+        }
+
       }
     })
-
-    this.updatePostListener = API.graphql(graphqlOperation(onUpdatePost)).subscribe({
-      next: postData => {
-        const {posts} = this.state
-        const updatePost = postData.value.data.onUpdatePost
-        const index = posts.findIndex(post => post.id === updatePost.id);
-        const updatePosts = [...posts.slice(0, index), updatePost, ...posts.slice(index + 1)]
-        this.setState({ posts: updatePosts})
-      }
-    
-    })
-
 
   };
 
@@ -54,6 +84,7 @@ class DisplayPosts extends Component {
     this.createPostListener.unsubscribe();
     this.deletePostListener.unsubscribe();
     this.updatePostListener.unsubscribe();
+    this.createPostCommentListener.unsubscribe();
   }
 
   getPosts = async () => {
@@ -74,16 +105,20 @@ class DisplayPosts extends Component {
             {"Wrote by: "}
             {post.postOwnerUsername}
             <p>{post.postBody}</p>
-            <br />
-            <span>
-              <DeletePost data={post} />
-              <EditPost {...post}/>
-            </span>
+            <time style={{ fontStyle: "italic", color: "#0ca5e297" }}>
+              {" "}
+              {new Date(post.createdAt).toDateString()}
+            </time>
           </span>
-          <time style={{ fontStyle: "italic", color: "#0ca5e297" }}>
-            {" "}
-            {new Date(post.createdAt).toDateString()}
-          </time>
+
+          <br />
+          <span>
+            <DeletePost data={post} />
+            <EditPost {...post} />
+          </span>
+          <span>
+            <CreateCommentPost postId={post.id} />
+          </span>
         </div>
       );
     });

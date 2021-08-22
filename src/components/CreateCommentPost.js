@@ -41,7 +41,7 @@ export default class CreateCommentPost extends Component {
             <div>
                 <form className="add-comment" onSubmit={this.handleAddComment }>
                     <textarea type="text" name="content" row="3" cols="40" required placeholder="add you comment.." value={this.state.content} onChange={this.handleChangeContent} />
-                    <input className="btn" style={{fontSize:"19px"}} value="Add Comment" />
+                    <input className="btn" type="submit" style={{fontSize:"19px"}} value="Add Comment" />
                 </form>
             </div>
         )
