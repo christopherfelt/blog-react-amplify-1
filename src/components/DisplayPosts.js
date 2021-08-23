@@ -11,6 +11,7 @@ import DeletePost from "./DeletePost";
 import { listPosts } from "../graphql/queries";
 import EditPost from "./EditPost";
 import CreateCommentPost from "./CreateCommentPost";
+import CommentPost from "./CommentPost";
 
 class DisplayPosts extends Component {
   state = {
@@ -118,6 +119,11 @@ class DisplayPosts extends Component {
           </span>
           <span>
             <CreateCommentPost postId={post.id} />
+            { post.comments.items.length > 0 && <span style={{fontSize:"19px", color: "gray"}} >
+              Comments </span>}
+              {
+                post.comments.items.map((comment, index) => <CommentPost key={index} commentData={comment} />)
+              }
           </span>
         </div>
       );

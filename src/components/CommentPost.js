@@ -3,7 +3,7 @@ import React, { Component } from 'react'
 export default class CommentPost extends Component {
     render() {
 
-        const {content, commentOwnerUsername, createdAt}
+        const {content, commentOwnerUsername, createdAt} =this.props.commentData;
 
         return (
             <div className="comment">
@@ -12,7 +12,7 @@ export default class CommentPost extends Component {
                     {" on "}
                     <time style={{fontStyle: "italic"}}>
                         {" "}
-                        { new Date(createdAt),toDateString()}
+                        { new Date(createdAt).toDateString()}
                     </time>
                 </span> 
                 <p>
