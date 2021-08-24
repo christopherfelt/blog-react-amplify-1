@@ -1,10 +1,11 @@
 import React, { Component } from "react";
-import { API, graphqlOperation } from "aws-amplify";
+import { API, Auth, graphqlOperation } from "aws-amplify";
 import {
   onCreatePost,
   onDeletePost,
   onUpdatePost,
-  onCreateComment
+  onCreateComment,
+  onCreateLike,
 } from "../graphql/subscriptions";
 
 import DeletePost from "./DeletePost";
@@ -13,13 +14,25 @@ import EditPost from "./EditPost";
 import CreateCommentPost from "./CreateCommentPost";
 import CommentPost from "./CommentPost";
 
+import { FaThumbsUp } from "react-icons";
+
 class DisplayPosts extends Component {
   state = {
+    ownerId: "",
+    owerUsername: "",
+    isHovering: false,
     posts: [],
   };
 
   componentDidMount = async () => {
     this.getPosts();
+
+    await Auth.currentUserInfo().then((user) => {
+      this.setState({
+        ownerId: user.attributes.sub,
+        ownerUsername: user.username,
+      });
+    });
 
     // use subscribe sparingly
 
@@ -65,20 +78,36 @@ class DisplayPosts extends Component {
       },
     });
 
-    this.createPostCommentListener = API.graphql(graphqlOperation(onCreateComment)).subscribe({
-      next: commentData => {
+    this.createPostCommentListener = API.graphql(
+      graphqlOperation(onCreateComment)
+    ).subscribe({
+      next: (commentData) => {
         const createdComment = commentData.value.data.onCreateComment;
-        let posts = [ ...this.state.posts];
+        let posts = [...this.state.posts];
 
-        for(let post of posts){
-          if(createdComment.post.id === post.id){
-            post.comments.item.push(createdComment)
+        for (let post of posts) {
+          if (createdComment.post.id === post.id) {
+            post.comments.item.push(createdComment);
           }
         }
+      },
+    });
 
-      }
-    })
+    this.createPostLikeListener = API.graphql(
+      graphqlOperation(onCreateLike)
+    ).subscribe({
+      next: (postData) => {
+        const createdLike = postData.value.data.onCreateLike;
 
+        let posts = [...this.state.posts];
+        for (let post of posts) {
+          if (createdLike.post.id === post.id) {
+            post.likes.items.push(createdLike);
+          }
+        }
+        this.setState({ posts });
+      },
+    });
   };
 
   componentWillUnmount() {
@@ -86,6 +115,7 @@ class DisplayPosts extends Component {
     this.deletePostListener.unsubscribe();
     this.updatePostListener.unsubscribe();
     this.createPostCommentListener.unsubscribe();
+    this.createPostLikeListener.unsubscribe();
   }
 
   getPosts = async () => {
@@ -94,6 +124,20 @@ class DisplayPosts extends Component {
     this.setState({ posts: result.data.listPosts.items });
 
     // console.log("All Posts: ", result.data.listPosts.items);
+  };
+
+  likedPost = (postId) => {
+    for (let post of this.state.posts) {
+      if (post.id === postId) {
+        if (post.postOwnerId === this.state.ownerId) return true;
+        for (let like of post.likes.items) {
+          if (like.likeOnwerId === this.state.ownerId) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   };
 
   render() {
@@ -119,11 +163,12 @@ class DisplayPosts extends Component {
           </span>
           <span>
             <CreateCommentPost postId={post.id} />
-            { post.comments.items.length > 0 && <span style={{fontSize:"19px", color: "gray"}} >
-              Comments </span>}
-              {
-                post.comments.items.map((comment, index) => <CommentPost key={index} commentData={comment} />)
-              }
+            {post.comments.items.length > 0 && (
+              <span style={{ fontSize: "19px", color: "gray" }}>Comments </span>
+            )}
+            {post.comments.items.map((comment, index) => (
+              <CommentPost key={index} commentData={comment} />
+            ))}
           </span>
         </div>
       );
